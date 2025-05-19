@@ -1,2 +1,3 @@
 .temp.*
+id_rsa*
 wg0.conf

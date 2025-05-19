@@ -8,7 +8,17 @@ date=$(date "+%Y-%m-%d.%H-%M")
 
 touch $tmpfile && printf "Create temp file: $tmpfile\n"
 
-docker build --no-cache -t wireguard-container docker/wireguard
+docker build --no-cache -t wireguard-container docker/images/wireguard
+
+destroy_docker_images(){
+  docker stop $@
+  docker rm -f $@
+}
+
+[ $1 == "destroy" ] && {
+  mapfile -t DOCKER_CONTAINERS < <(grep "docker:" .temp.infra |  cut -d':' -f2) # awk -F ':' '{printf $2}'
+  destroy_docker_images ${DOCKER_CONTAINERS[@]}
+}
 
 [ $1 == "wg-test" ] && {
   printf '\ndocker:' >> $tmpfile
@@ -21,12 +31,3 @@ docker build --no-cache -t wireguard-container docker/wireguard
     -d wireguard-container 1>> $tmpfile 2>/dev/tty
 }
 
-destroy_docker_images(){
-  docker stop $@
-  docker rm -f $@
-}
-
-[ $1 == "destroy" ] && {
-  mapfile -t docker_containers < <(grep "docker:" .temp.infra |  cut -d':' -f2) # awk -F ':' '{printf $2}'
-  destroy_docker_images ${docker_containers[@]}
-}
