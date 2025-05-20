@@ -1,0 +1,56 @@
+- name: Configurar túnel WireGuard entre dos nodos
+  hosts: "{{ nodo_a }},{{ nodo_b }}"
+  become: yes
+  vars:
+    wg_interface: "wg0"
+    allowed_ips: "{{ hostvars[nodo_a]['ip_' + wg_interface] }},{{ hostvars[nodo_b]['ip_' + wg_interface] }}"
+    private_key_path: "/etc/wireguard/{{ wg_interface }}_privatekey"
+    public_key_path: "/etc/wireguard/{{ wg_interface }}_publickey"
+
+  tasks:
+    - name: Define WireGuard port
+      ansible.builtin.set_fact:
+        wireguard_port: "{{ hostvars[inventory_hostname]['port_' + wg_interface] | default('51820') }}"
+
+    - name: Check WireGuard directory [/etc/wireguard]
+      ansible.builtin.file:
+        path: "/etc/wireguard"
+        state: directory
+        mode: '0700'
+
+    - name: Slurp read WireGuard public key
+      ansible.builtin.slurp:
+        src: "{{ public_key_path }}"
+      register: public_key_b64
+
+    - name: Base 64 decode WireGuard public key 
+      ansible.builtin.set_fact:
+        public_key_decoded: "{{ public_key_b64.content | b64decode }}"
+
+    - name: Public key var
+      ansible.builtin.set_fact:
+        nodo_a_key: "{{ hostvars[nodo_a]['public_key_decoded'] }}"
+        nodo_b_key: "{{ hostvars[nodo_b]['public_key_decoded'] }}"
+
+    - name: Config WireGuard interface in node [{{ nodo_a }}]
+      ansible.builtin.shell:
+        cmd: "wg set {{ wg_interface }} peer {{ nodo_b_key }} endpoint {{ hostvars[nodo_b].ansible_host }}:{{ wireguard_port }} allowed-ips {{ allowed_ips }}"
+      delegate_to: "{{ nodo_a }}"
+
+    - name: Config WireGuard interface in node [{{ nodo_b }}]
+      ansible.builtin.shell:
+        cmd: "wg set {{ wg_interface }} peer {{ nodo_a_key }} endpoint {{ hostvars[nodo_a].ansible_host }}:{{ wireguard_port }} allowed-ips {{ allowed_ips }}"
+      delegate_to: "{{ nodo_b }}"
+
+  handlers:
+    - name: Restart WireGuard
+      #ansible.builtin.shell:
+      #  cmd: "wg-quick down {{ wg_interface }}; wg-quick up {{ wg_interface }}"
+      #ansible.builtin.systemd:
+      #  name: "wg-quick@{{ wg_interface }}"
+      #  state: started
+      #  enabled: yes
+
+      ansible.builtin.systemd:
+        name: "wg-quick@{{ wg_interface }}"
+        state: restarted

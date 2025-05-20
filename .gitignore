@@ -1,3 +1,4 @@
 .temp.*
 id_rsa*
 wg0.conf
+known_hosts*

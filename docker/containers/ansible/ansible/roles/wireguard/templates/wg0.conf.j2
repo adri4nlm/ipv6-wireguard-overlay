@@ -1,0 +1,18 @@
+[Interface]
+Address = {{ wireguard_address }}
+ListenPort = {{ wireguard_port }}
+PrivateKey = {{ private_key }}
+
+{% if inventory_hostname in groups['hub'] %}
+{% for peer in groups['peers'] %}
+[Peer]
+PublicKey = {{ hostvars[peer].public_key }}
+AllowedIPs = {{ hostvars[peer].wireguard_address }}
+{% endfor %}
+{% elif inventory_hostname in groups['peers'] %}
+[Peer]
+PublicKey = {{ hostvars[hub_host].public_key }}
+Endpoint = {{ hostvars[hub_host].public_address }}:{{ wireguard_port }}
+AllowedIPs = {{ hostvars[hub_host].wireguard_address }}
+PersistentKeepalive = 25
+{% endif %}

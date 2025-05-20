@@ -1,0 +1,37 @@
+- name: Subir contexto de Dockerfile (wireguard) a /tmp en el host remoto
+  ansible.builtin.copy:
+    src: docker/images/wireguard/
+    dest: /tmp/wireguard/
+    mode: '0755'
+    owner: root
+    group: root
+  become: true
+
+- name: Build Docker image for WireGuard (no cache)
+  community.docker.docker_image:
+    name: wireguard-container
+    source: build
+    build:
+      path: /tmp/wireguard
+      nocache: true
+  become: true
+
+#- name: Generate date suffix
+#  ansible.builtin.command: date +%Y%m%d%H%M%S
+#  register: current_date
+#  changed_when: false
+
+- name: Run WireGuard container
+  community.docker.docker_container:
+    name: "wireguard"
+    #{{ current_date.stdout }}"
+    image: wireguard-container
+    capabilities:
+      - NET_ADMIN
+      - SYS_MODULE
+    network_mode: host
+    devices:
+      - "/dev/net/tun:/dev/net/tun"
+    volumes:
+      - "{{ wireguard_path }}/wg0.conf:/etc/wireguard/wg0.conf"
+    detach: true

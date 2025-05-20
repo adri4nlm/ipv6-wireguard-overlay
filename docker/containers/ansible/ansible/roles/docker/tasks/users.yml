@@ -1,0 +1,43 @@
+- name: Add extra users to docker group
+  user:
+    name: "{{item}}"
+    groups: docker
+    append: true
+  loop: '{{ [docker_user] + docker_extra_users }}'
+
+- name: Allow users of docker group to create folder in /etc/docker
+  file:
+    name: "/etc/docker"
+    state: directory
+    owner: "root"
+    group: "docker"
+    mode: 0775
+
+- name: Allow users of {{docker_granded_group_to_data}} to navigate to {{docker_path}}
+  file:
+    name: "{{docker_path}}"
+    state: directory
+    owner: "root"
+    group: "{{docker_granded_group_to_data}}"
+    mode: g+x
+  when: docker_granded_group_to_data is defined
+
+- name: Allow users of {{docker_granded_group_to_data}} to show folders {{docker_granded_read_paths|join(',')}}
+  file:
+    name: "{{item}}"
+    state: directory
+    owner: "root"
+    group: "{{docker_granded_group_to_data}}"
+    mode: u+rx,g+rxs
+  loop: "{{docker_granded_read_paths}}"
+  when: docker_granded_group_to_data is defined and docker_granded_read_paths is defined
+
+- name: Allow users of {{docker_granded_group_to_data}} to write folders {{docker_granded_write_paths|join(',')}}
+  file:
+    name: "{{item}}"
+    state: directory
+    owner: "root"
+    group: "{{docker_granded_group_to_data}}"
+    mode: u+rwx,g+rwxs
+  loop: "{{docker_granded_write_paths}}"
+  when: docker_granded_group_to_data is defined and docker_granded_write_paths is defined

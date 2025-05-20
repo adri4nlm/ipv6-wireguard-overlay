@@ -1,0 +1,52 @@
+- name: Create WireGuard directory [/etc/wireguard]
+  ansible.builtin.file:
+    path: "/etc/wireguard"
+    state: directory
+    mode: "0700"
+    
+- name: Check WireGuard private key [{{ wireguard_interface }}_privatekey]
+  ansible.builtin.stat:
+    path: "/etc/wireguard/{{ wireguard_interface }}_privatekey"
+  register: private_key_file
+
+- name: Read WireGuard private key [{{ wireguard_interface }}_privatekey]
+  ansible.builtin.slurp:
+    src: "/etc/wireguard/{{ wireguard_interface }}_privatekey"
+  register: existing_private_key
+  when: private_key_file.stat.exists
+
+- name: Create WireGuard private key [{{ wireguard_interface }}_privatekey]
+  ansible.builtin.command:
+    cmd: wg genkey
+  register: new_private_key
+  changed_when: new_private_key.stdout != ""
+  when: not private_key_file.stat.exists
+
+- name: Import WireGuard private key [{{ wireguard_interface }}_privatekey]
+  ansible.builtin.set_fact:
+    private_key_value: >-
+      {{ (new_private_key.stdout if (new_private_key.stdout is defined and new_private_key.stdout != "") 
+      else (existing_private_key.content | b64decode | regex_replace('\\n', ''))) | default('') }}
+
+- name: If create save WireGuard private key [{{ wireguard_interface }}_privatekey]
+  ansible.builtin.copy:
+    content: "{{ private_key_value }}"
+    dest: "/etc/wireguard/{{ wireguard_interface }}_privatekey"
+    mode: "0600"
+  when: not private_key_file.stat.exists
+
+- name: Create WireGuard public key - 1
+  ansible.builtin.shell:
+    cmd: "echo '{{ private_key_value }}' | wg pubkey"
+  register: public_key
+  changed_when: public_key.stdout != ""
+
+- name: Create WireGuard public key - 2
+  ansible.builtin.set_fact:
+    final_public_key: "{{ public_key.stdout | default('') }}"
+
+- name: Save WireGuard public key [{{ wireguard_interface }}_publickey]
+  ansible.builtin.copy:
+    content: "{{ final_public_key }}"
+    dest: "/etc/wireguard/{{ wireguard_interface }}_publickey"
+    mode: "0644"

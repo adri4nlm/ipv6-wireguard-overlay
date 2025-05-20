@@ -1,0 +1,9 @@
+---
+- name: Wireguard Create Keys
+  include_tasks: keys.yml
+
+- name: WireGuard configure interface
+  include_tasks: configure.yml
+
+- name: WireGuard deploy docker container
+  include_tasks: deploy-container.yml

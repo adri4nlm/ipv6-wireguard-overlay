@@ -1,0 +1,24 @@
+  - name: Slurp read WireGuard public key
+    ansible.builtin.slurp:
+      src: "{{ public_key_path }}"
+    register: public_key_b64
+
+  - name: Base 64 decode WireGuard public key 
+    ansible.builtin.set_fact:
+      public_key: "{{ public_key_b64.content | b64decode }}"
+
+  - name: Slurp read WireGuard private key
+    ansible.builtin.slurp:
+      src: "{{ private_key_path }}"
+    register: private_key_b64
+
+  - name: Base 64 decode WireGuard private key
+    ansible.builtin.set_fact:
+      private_key: "{{ private_key_b64.content | b64decode }}"
+
+  - name: Create WireGuard configure file
+    template:
+      src: wg0.conf.j2
+      dest: /etc/wireguard/wg0.conf
+      mode: '0600'
+    become: true

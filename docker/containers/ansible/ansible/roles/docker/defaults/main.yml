@@ -1,0 +1,24 @@
+---
+docker_apt_key:
+  id: 9DC858229FC7DD38854AE2D88D81803C0EBFCD88
+  url: https://download.docker.com/linux/{{ansible_facts['distribution']|lower}}/gpg
+docker_apt_repo: "deb https://download.docker.com/linux/{{ansible_facts['distribution']|lower}} {{release.stdout}} stable"
+
+docker_path: /var/lib/docker
+docker_internal_dns: '["1.1.1.1","1.0.0.1"]'
+docker_get_host_dns: false
+docker_log_driver: local
+docker_log_max_size: 10m
+docker_log_max_files: 10
+
+#docker_compose_install: true
+#docker_compose_use_repository: true
+#docker_compose_version: 1.29.2
+
+docker_bash_alias: true
+docker_bash_alias_shared: true
+docker_bash_alias_dir_share: /usr/share
+docker_bash_alias_dir: "{% if docker_bash_alias_shared is defined and docker_bash_alias_shared %}{{docker_bash_alias_dir_share}}{% else %}{{ansible_env.HOME}}{% endif %}"
+
+docker_user: docker
+docker_extra_users: []

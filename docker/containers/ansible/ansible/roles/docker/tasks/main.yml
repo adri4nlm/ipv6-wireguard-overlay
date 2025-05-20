@@ -1,0 +1,15 @@
+- import_tasks: install-docker.yml
+  become: true
+  tags: install
+#- import_tasks: install-docker-compose.yml
+#  become: true
+#  when: docker_compose_install
+#  tags: install
+- import_tasks: users.yml
+  become: true
+  tags: install
+#- import_tasks: alias-docker-compose.yml
+#  tags: configure
+- import_tasks: pip-docker.yml
+  become: true
+  tags: configure
